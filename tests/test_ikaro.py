@@ -71,3 +71,35 @@ async def test_ikaro_power_off_without_stopping_fan(
 
     assert mock_modbus_unit.holding[28301] == 0
     assert mock_modbus_unit.holding[28303] == FanSpeed.LOW
+
+
+@pytest.mark.asyncio
+async def test_ikaro_split_update_readings_and_settings(
+    mock_modbus_unit: MockModbusUnit,
+) -> None:
+    """Verify async_update_readings and async_update_settings update independently."""
+    mock_modbus_unit.load_raw(
+        {
+            "input": {46801: 215},
+            "holding": {
+                28301: 1,
+                28302: IkaroMode.HEAT,
+                28303: FanSpeed.LOW,
+                28310: 240,
+                28311: 220,
+            },
+        }
+    )
+
+    device = IkaroHW(mock_modbus_unit)
+
+    readings_report = await device.async_update_readings()
+    assert readings_report.complete
+    assert device.readings.ambient_temperature == pytest.approx(21.5)
+
+    settings_report = await device.async_update_settings()
+    assert settings_report.complete
+    assert device.settings.power is True
+    assert device.settings.mode is IkaroMode.HEAT
+    assert device.settings.fan_speed is FanSpeed.LOW
+    assert device.settings.target_temp_heat == pytest.approx(22.0)
