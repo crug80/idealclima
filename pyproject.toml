@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "idealclima"
-version = "0.1.0"
+version = "0.1.2"
 description = "Async Modbus library for Idealclima fan coil units (Comfosplit IKARO HW and Radiantore SKUDO DC Inverter)"
 readme = "README.md"
 license = "MIT"

@@ -9,27 +9,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
         with:
           python-version: "3.13"
 
       - name: Install dependencies
         run: uv sync --frozen --all-extras
 
+      - name: Verify release tag matches pyproject.toml version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          uv run --no-sync python - <<'EOF'
+          import os
+          import tomllib
+
+          with open("pyproject.toml", "rb") as f:
+              version = tomllib.load(f)["project"]["version"]
+          raw_tag = os.environ["RELEASE_TAG"]
+          tag = raw_tag.removeprefix("v")
+          if tag != version:
+              raise SystemExit(
+                  f"Release tag {raw_tag!r} does not match pyproject.toml version {version!r}"
+              )
+          EOF
+
       - name: Run checks
         run: |
           uv run ruff check .
           uv run mypy src tests
-          uv run pytest -v
+          uv run pytest -v --cov=idealclima --cov-report=term-missing --cov-fail-under=100
 
       - name: Build package
         run: uv build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -45,7 +63,7 @@ jobs:
 
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
